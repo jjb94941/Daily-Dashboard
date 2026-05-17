@@ -1,0 +1,7 @@
+name = "daily-dashboard"
+compatibility_date = "2026-05-01"
+pages_build_output_dir = "public"
+
+# KV namespaces and env vars are configured in the Cloudflare Pages
+# dashboard (Settings → Functions) rather than here, so this file
+# can stay in version control without secrets.

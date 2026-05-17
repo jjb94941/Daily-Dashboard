@@ -1,0 +1,13 @@
+{
+  "name": "daily-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal hosted daily dashboard on Cloudflare Pages",
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date=2026-05-01",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}

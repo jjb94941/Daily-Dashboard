@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in · Daily Dashboard</title>
+<link rel="manifest" href="/manifest.json" />
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 60%); color: #18181b;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .card {
+    max-width: 380px; width: 100%; background: #fff; border: 1px solid #e6e6e8;
+    border-radius: 14px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.04);
+    text-align: center;
+  }
+  .logo { font-size: 32px; margin-bottom: 8px; }
+  h1 { margin: 6px 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  p  { margin: 0 0 22px; color: #71717a; font-size: 14px; line-height: 1.5; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    background: #fff; color: #18181b; border: 1px solid #d4d4d8; border-radius: 8px;
+    padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%;
+    text-decoration: none;
+  }
+  .btn:hover { background: #f4f4f5; }
+  .g-icon { width: 18px; height: 18px; }
+  .foot { margin-top: 18px; color: #a1a1aa; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🌅</div>
+    <h1>Daily Dashboard</h1>
+    <p>Sign in with the Google account on this dashboard's allowlist.</p>
+    <a class="btn" href="/api/auth/login">
+      <svg class="g-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.17-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.71v2.25h2.92c1.71-1.57 2.68-3.89 2.68-6.6z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.92-2.25c-.81.54-1.85.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33A9 9 0 009 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 013.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 000 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0A9 9 0 00.96 4.95L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </a>
+    <div class="foot">You'll grant read-only access to Gmail and Calendar.</div>
+  </div>
+<script>
+  // If already signed in, skip to dashboard.
+  fetch('/api/auth/me').then(r => { if (r.ok) location.replace('/'); });
+</script>
+</body>
+</html>

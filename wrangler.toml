@@ -1,7 +1,7 @@
-name = "daily-dashboard"
-compatibility_date = "2026-05-01"
-pages_build_output_dir = "public"
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "d91319b1210642a980c3be1ecb770559"
 
-# KV namespaces and env vars are configured in the Cloudflare Pages
-# dashboard (Settings → Functions) rather than here, so this file
-# can stay in version control without secrets.
+[[kv_namespaces]]
+binding = "CACHE"
+id = "34a5df51e6614dda97570ce58ae9562d"

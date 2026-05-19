@@ -1,161 +1,201 @@
-# Setup walkthrough
+# Daily Dashboard — operator reference
 
-Top-to-bottom. About 30–45 minutes the first time. Have a coffee.
+This doc is the source of truth for the deployed state of this webapp. It is intended for Claude (or anyone) coming in fresh to make changes without re-discovering the setup. The original first-time setup walkthrough is preserved at the bottom under "Original setup walkthrough" — that section is historical; the project is already deployed.
 
-## Part 1 — Google Cloud OAuth client (15 min)
+## TL;DR for a fresh session
+
+- **Live URL:** https://daily-dashboard-57o.pages.dev
+- **Repo:** https://github.com/jjb94941/Daily-Dashboard (private, single branch `main`)
+- **Hosting:** Cloudflare Pages project named `daily-dashboard`, auto-deploys from GitHub on every push to `main`.
+- **Auth:** Google OAuth (Web application client). Allowlist is one email: `jjb94941@gmail.com`. The app is in "Testing" mode in Google Cloud — that's intentional, no need to publish.
+- **Owner:** Julian Brandes (jjb94941@gmail.com).
+
+Your job in a new session is usually a code change. Pull the relevant file from `https://raw.githubusercontent.com/jjb94941/Daily-Dashboard/main/<path>`, edit, commit via the GitHub web UI (Claude can drive Chrome for this) or the GitHub Contents API with a fine-grained PAT, and Cloudflare redeploys automatically.
+
+## Architecture
+
+```
+public/                       Static assets served directly by Pages
+  index.html                  Dashboard UI (CSS + DOM scaffold)
+  login.html                  Sign-in page
+  app.js                      Dashboard client logic (no framework, vanilla JS)
+  manifest.json               PWA manifest
+functions/                    Cloudflare Pages Functions (server-side)
+  _middleware.js              Attaches `session` to context for all /api routes
+  _utils/
+    google.js                 OAuth helpers + Gmail/Calendar API calls
+    session.js                Signed-cookie sessions backed by KV
+    helpers.js                json(), errorJson(), isAllowed()
+  api/auth/
+    login.js                  GET → 302 to Google OAuth + sets oauth_state cookie
+    callback.js               GET → exchanges code, creates session, redirects to /
+    me.js                     GET → returns { email } if signed in, else 401
+    logout.js                 POST → clears session cookie + KV entry
+  api/calendar/today.js       GET → today's events (live from Google)
+  api/email/unread.js         GET → unread Gmail subjects from last 24h (live)
+  api/data/index.js           GET → weather + stocks + news. Caches in CACHE KV for 6h.
+  api/config/index.js         GET/PUT → user's cities/stocks/news sources/widgets, stored per-email in KV
+wrangler.toml                 ALL config lives here (see below)
+```
+
+## wrangler.toml is the source of truth for config
+
+Cloudflare Pages treats `wrangler.toml` as the source of truth. When it's present, dashboard env-var entries for plaintext become inert; only encrypted Secret dashboard entries are read at runtime.
+
+Current `wrangler.toml`:
+
+```toml
+name = "daily-dashboard"
+pages_build_output_dir = "public"
+
+[vars]
+GOOGLE_CLIENT_ID = "1008686543160-t4nvq2rdrcfdqo3v9jcgct1akgelhn67.apps.googleusercontent.com"
+ALLOWED_EMAILS = "jjb94941@gmail.com"
+APP_URL = "https://daily-dashboard-57o.pages.dev"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "d91319b1210642a980c3be1ecb770559"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "34a5df51e6614dda97570ce58ae9562d"
+```
+
+Both `pages_build_output_dir` AND `name` are required — without them, Cloudflare Pages refuses to parse the file at all (silent skip, no warning during build). The lesson: when in doubt, check the build log for the line `Successfully read the Wrangler configuration file.` — if it says `Skipping file and continuing`, the file is being ignored.
+
+## Secrets (Cloudflare dashboard, encrypted)
+
+Two values, both marked Secret type in Cloudflare Pages → Settings → Variables and Secrets:
+
+- `GOOGLE_CLIENT_SECRET` — the Google OAuth client secret (rotated; only `****qtbm` is active in Google Cloud).
+- `SESSION_SECRET` — 64-char hex used to sign session cookies.
+
+## Google Cloud setup (current state)
+
+- Project: "Daily Dashboard"
+- OAuth client: "Daily Dashboard Webapp" (Web application type) — this is the only client; the Desktop one was deleted.
+- Client ID: `1008686543160-t4nvq2rdrcfdqo3v9jcgct1akgelhn67.apps.googleusercontent.com`
+- Active client secret: `****qtbm` (the old `****Rp5X` was disabled and deleted).
+- Authorized JavaScript origins: `https://daily-dashboard-57o.pages.dev`
+- Authorized redirect URIs: `https://daily-dashboard-57o.pages.dev/api/auth/callback`
+- Audience / publishing status: Testing.
+- Test users: `jjb94941@gmail.com`.
+- Scopes: `userinfo.email`, `gmail.readonly`, `calendar.readonly`.
+
+## Gotchas already burned through (do NOT re-discover)
+
+1. **`wrangler.toml` needs `name` and `pages_build_output_dir`.** Without both, Pages silently skips the file. KV bindings + `[vars]` will appear to "not work" with no clear error. Always grep build log for "Successfully read the Wrangler configuration file."
+2. **Dashboard env vars don't override `wrangler.toml` `[vars]`.** Once `[vars]` exists in wrangler.toml, dashboard plaintext entries are inert — Cloudflare blocks deletion with a tooltip. To change a plaintext var, edit `wrangler.toml`.
+3. **Multiple `Set-Cookie` headers can't be joined with commas.** The original callback.js did `headers: { 'Set-Cookie': [cookie, clearCookie('oauth_state')].join(', ') }`, which silently dropped the session cookie (because cookie values contain commas inside `Expires=`). Always use `const h = new Headers(); h.append('Set-Cookie', cookie); h.append('Set-Cookie', other);`.
+4. **The unverified-app warning** ("Google hasn't verified this app") is expected and not a bug. Allowlisted test users click Advanced → Continue. Do not try to "fix" it by submitting for verification — the scopes are restricted and verification is heavy.
+5. **Static HTML/JS cannot read Cloudflare env vars.** Anything that needs server config goes through a Pages Function. The login page should hit `/api/auth/login` and let the server build the OAuth URL.
+
+## How to make code changes (the standard playbook)
+
+1. Open a Chrome tab to the target file via `https://github.com/jjb94941/Daily-Dashboard/edit/main/<path>` (or `/blob/` to view first).
+2. Replace content. For small edits: in-place. For big edits: select all, paste new version. (For very large pastes, the GitHub web editor can time out — fall back to the Contents API with a fine-grained PAT.)
+3. Commit with a clear message. Commit directly to `main`.
+4. Cloudflare auto-deploys. Watch `https://dash.cloudflare.com/?to=/:account/workers-and-pages` or just wait ~90 seconds.
+5. Smoke test: hit the live URL, verify the change, screenshot for the user.
+
+If Claude has Chrome access in the session, it can do all of the above. If not, write the file content into the user's workspace and have the user paste-and-commit.
+
+## Configuration users can set (no code change needed)
+
+Stored in KV under `config:<email>`:
+
+- `cities` — weather cards.
+- `stocks` and `indices` — markets list.
+- `newsSources` — RSS feeds for the news section.
+- `customWidgets` — user-added note / link-list widgets.
+
+The dashboard UI has `+ Add` buttons for each of these. No need to edit code to add a city.
+
+## Where things live, summarized
+
+| Concern | Where |
+| --- | --- |
+| Visual layout / CSS | `public/index.html` (single `<style>` block at top) |
+| Client behavior | `public/app.js` |
+| New backend endpoint | `functions/api/<area>/<name>.js`, exported as `onRequestGet` / `onRequestPost` etc. |
+| New env var (non-secret) | `wrangler.toml` `[vars]` |
+| New secret | Cloudflare dashboard → Variables and Secrets, type Secret. Not in `wrangler.toml`. |
+| New KV namespace | Create in Cloudflare → KV, add to `wrangler.toml` `[[kv_namespaces]]`, redeploy. |
+
+## Quick-reference scratchpad for the user
+
+- Repo edit URL pattern: `https://github.com/jjb94941/Daily-Dashboard/edit/main/<path>`
+- Raw URL pattern: `https://raw.githubusercontent.com/jjb94941/Daily-Dashboard/main/<path>`
+- Cloudflare project: `dash.cloudflare.com` → Workers & Pages → `daily-dashboard`
+- Google Cloud project: `console.cloud.google.com` → Daily Dashboard
+
+---
+
+## Original setup walkthrough (historical, kept for reference)
+
+The sections below describe the original first-time setup that was already completed in May 2026. Useful only if rebuilding from scratch or replicating to another account.
+
+### Part 1 — Google Cloud OAuth client
 
 You need an OAuth client so the webapp can sign you in with Google and read Gmail + Calendar on your behalf.
 
-### 1.1 Create a Google Cloud project
+**1.1 Create a Google Cloud project**
 
 1. Go to https://console.cloud.google.com
 2. Top bar → project dropdown → "New Project"
 3. Name: `Daily Dashboard` · Organization: (leave blank) · Location: (no organization)
-4. Click Create. Wait ~10 seconds. Make sure the new project is selected in the top bar.
+4. Click Create. Wait ~10 seconds.
 
-### 1.2 Enable the APIs
+**1.2 Enable the APIs**
 
 1. Left sidebar → "APIs & Services" → "Library"
-2. Search for **Gmail API** → Enable
-3. Search for **Google Calendar API** → Enable
+2. Search for `Gmail API` → Enable
+3. Search for `Google Calendar API` → Enable
 
-### 1.3 Configure the OAuth consent screen (now called "Google Auth Platform")
+**1.3 Configure the OAuth consent screen ("Google Auth Platform")**
 
-Google redesigned this UI in 2025. The new sidebar splits the old flow into separate pages:
+Note that Google renamed several pages in 2025+. Mapping:
 
-| Old name | New name |
-|---|---|
-| OAuth consent screen → App info | **Branding** |
-| Scopes | **Data Access** |
-| Test users | **Audience** |
-| Credentials → OAuth client | **Clients** |
+| Old name | New name (2025+) |
+| --- | --- |
+| OAuth consent screen → App info | Branding |
+| Scopes | Data Access |
+| Test users | Audience |
+| Credentials → OAuth client | Clients |
 
-Walk through them in this order:
+Steps:
 
-1. Left sidebar → "APIs & Services" → "Google Auth Platform"
-2. If prompted, choose User type: **External** → Create
-3. **Branding**:
-   - App name: `Daily Dashboard`
-   - User support email: your email
-   - Developer contact email: your email
-   - Save
-4. **Data Access** → Add or Remove Scopes → check these three:
-   - `.../auth/userinfo.email`
-   - `https://www.googleapis.com/auth/gmail.readonly`
-   - `https://www.googleapis.com/auth/calendar.readonly`
-   - Update / Save
-5. **Audience** → Test users → Add Users → add `jjb94941@gmail.com` (and any other allowlist emails). Save.
+1. Sidebar → "APIs & Services" → "Google Auth Platform"
+2. User type: External → Create
+3. Branding: App name `Daily Dashboard`, support + dev contact emails. Save.
+4. Data Access → Add scopes: `userinfo.email`, `gmail.readonly`, `calendar.readonly`. Save.
+5. Audience → Test users → Add `jjb94941@gmail.com`. Save.
 
-Note: while the app is in "Testing" mode (shown in Audience), only the test users you added can sign in. You don't need to publish to production unless you want non-allowlisted people to log in (you don't).
+**1.4 Create the OAuth client**
 
-### 1.4 Create the OAuth client
+1. "Clients" → "+ Create Client"
+2. Type: Web application, name `Daily Dashboard Webapp`
+3. Authorized JS origins: `https://daily-dashboard-57o.pages.dev`
+4. Authorized redirect URIs: `https://daily-dashboard-57o.pages.dev/api/auth/callback`
+5. Save the Client ID and Client Secret.
 
-1. Left sidebar → "Google Auth Platform" → "**Clients**" → "+ Create Client"
-2. Application type: **Web application**
-3. Name: `Daily Dashboard Webapp`
-4. Authorized JavaScript origins:
-   - `https://YOUR-SUBDOMAIN.pages.dev` (you'll fill this in after Part 2; come back and add it)
-   - For local testing: `http://localhost:8788`
-5. Authorized redirect URIs:
-   - `https://YOUR-SUBDOMAIN.pages.dev/api/auth/callback`
-   - `http://localhost:8788/api/auth/callback`
-6. Create.
-7. **Save the Client ID and Client Secret** that pop up. You'll need them in Part 3.
+### Part 2 — Cloudflare account + Pages project
 
-## Part 2 — Cloudflare account + Pages project (10 min)
+1. Sign up at `cloudflare.com`.
+2. KV → create namespaces `SESSIONS` and `CACHE`, save their IDs.
+3. GitHub → create repo, push code.
+4. Cloudflare → Workers & Pages → Connect to Git → pick the repo. Build output: `public`. Deploy.
 
-### 2.1 Create a Cloudflare account
+### Part 3 — Configure wrangler.toml + secrets
 
-1. Go to https://dash.cloudflare.com/sign-up
-2. Sign up with the email of your choice. Verify it.
+Put the namespace IDs, OAuth client ID, allowlist email, and `APP_URL` in `wrangler.toml`. Put `GOOGLE_CLIENT_SECRET` and `SESSION_SECRET` in Cloudflare dashboard → Variables and Secrets as encrypted Secret type.
 
-### 2.2 Create the KV namespaces
+### Part 4 — First sign-in
 
-KV is Cloudflare's simple key-value store. We need two namespaces.
+Open the URL → Sign in with Google → "Google hasn't verified" → Advanced → Continue → Grant scopes → Dashboard loads.
 
-1. From the Cloudflare dashboard left sidebar → "Storage & Databases" → "KV"
-2. Create namespace `SESSIONS` → Add
-3. Create namespace `CACHE` → Add
-4. **Copy the namespace ID** for each. You'll need them in Part 3.
+### Part 5 — Install as PWA on phone
 
-### 2.3 Create a GitHub repo for the project
-
-1. Go to https://github.com/new
-2. Name: `daily-dashboard` (private is fine)
-3. Don't initialize with README — we'll push our own.
-4. Create.
-
-### 2.4 Push the project to GitHub
-
-From a terminal in this folder (`dashboard-webapp/`):
-
-```
-git init
-git add .
-git commit -m "Initial scaffold"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/daily-dashboard.git
-git push -u origin main
-```
-
-### 2.5 Connect the repo to Cloudflare Pages
-
-1. Cloudflare dashboard → "Workers & Pages" → "Create application" → "Pages" → "Connect to Git"
-2. Authorize GitHub → pick the `daily-dashboard` repo
-3. Build settings:
-   - Framework preset: **None**
-   - Build command: (leave empty)
-   - Build output directory: `public`
-4. Save and Deploy
-5. After deploy finishes, note your URL: `https://daily-dashboard-XXX.pages.dev`. Go back to Part 1.4 and add this URL to your OAuth client's Authorized JavaScript Origins and Authorized Redirect URIs (with `/api/auth/callback` for the redirect).
-
-## Part 3 — Configure environment variables + KV bindings (5 min)
-
-The webapp needs to know your Google client credentials, allowlist, and how to find your KV namespaces. These all live in Cloudflare Pages settings, not in code.
-
-1. Cloudflare dashboard → Pages → `daily-dashboard` → "Settings" → "Functions"
-2. **KV namespace bindings** → Add binding:
-   - Variable name: `SESSIONS` · KV namespace: `SESSIONS`
-   - Variable name: `CACHE` · KV namespace: `CACHE`
-3. **Environment variables** (Production) → Add:
-   - `GOOGLE_CLIENT_ID` = (from Part 1.4)
-   - `GOOGLE_CLIENT_SECRET` = (from Part 1.4) — click "Encrypt" so it's stored as a secret
-   - `ALLOWED_EMAILS` = `jjb94941@gmail.com` (comma-separated if more)
-   - `SESSION_SECRET` = a random 64-character hex string — click "Encrypt". To generate one, open any browser, hit F12 → Console tab, and run:
-     ```
-     Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('')
-     ```
-     Copy the resulting string (no quotes) and paste it as the value.
-   - `APP_URL` = `https://daily-dashboard-XXX.pages.dev` (your exact deploy URL)
-4. Save.
-5. Trigger a new deploy: Pages → Deployments → "..." on the latest → "Retry deployment" (so the new env vars get picked up).
-
-## Part 4 — First sign-in (1 min)
-
-1. Open `https://daily-dashboard-XXX.pages.dev` in your phone's browser.
-2. You'll see the sign-in page → tap "Sign in with Google" → pick your account.
-3. Google will warn the app is unverified — that's expected, click Advanced → Continue.
-4. Grant Gmail + Calendar read permissions.
-5. You should land on the dashboard with live email + calendar.
-
-## Part 5 — Install as PWA on your phone (30 sec)
-
-**iOS Safari:**
-- Open the page → tap Share → "Add to Home Screen" → Add.
-- Now you have a "Daily" icon on your home screen that opens full-screen.
-
-**Android Chrome:**
-- A "Add to Home Screen" banner appears, or use the menu → Install app.
-
-## Troubleshooting
-
-- **"redirect_uri_mismatch" on sign-in:** the URL in OAuth Authorized Redirect URIs has to exactly match `https://YOUR-DOMAIN/api/auth/callback`. Check trailing slashes, http vs https.
-- **"Access blocked: this app's request is invalid":** check the OAuth consent screen scopes match Part 1.3.
-- **Sign-in succeeds but dashboard says "Couldn't load email":** open browser devtools → Network → check the failing request. Almost always a missing env var or KV binding.
-- **Need to re-deploy after changing env vars:** Pages doesn't auto-redeploy on env changes; trigger a manual redeploy (Part 3 step 5).
-- **Want to test locally before deploying:** see "Local development" in README.md.
-
-## After it's working
-
-- Tell Claude in your next session that the webapp is live and what URL it's at.
-- Iterate: change colors, layout, what's displayed, add new widget types. Each change is `git push` and Pages auto-deploys.
+- iOS Safari: Share → Add to Home Screen.
+- Android Chrome: install banner / menu → Install app.

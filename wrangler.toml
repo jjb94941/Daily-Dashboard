@@ -1,3 +1,4 @@
+ name = "daily-dashboard"
 pages_build_output_dir = "public"
 [[kv_namespaces]]
 binding = "SESSIONS"

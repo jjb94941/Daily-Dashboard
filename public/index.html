@@ -7,182 +7,166 @@
 <title>Daily Dashboard</title>
 <link rel="manifest" href="/manifest.json" />
 <style>
-  :root {
-    color-scheme: light;
-    --card: #ffffff; --card-2: #fafafa; --border: #e6e6e8; --border-strong: #d4d4d8;
-    --text: #18181b; --muted: #71717a; --accent: #2563eb; --accent-soft: #eff6ff;
-    --green: #15803d; --red: #b91c1c; --amber: #b45309; --amber-soft: #fffbeb;
-    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06);
-    --radius: 12px; --radius-sm: 8px;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #f8fafc; color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px; line-height: 1.45; }
-  .wrap { max-width: 1280px; margin: 0 auto; padding: 14px 16px 40px; }
-  .header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  .header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
-  .date-line { font-size: 15px; color: var(--text); font-weight: 500; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); border: 1px solid #dbeafe; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
-  .pill.stale { background: var(--amber-soft); color: var(--amber); border-color: #fde68a; }
-
-  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
-  .card-hd { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--card-2); }
-  .card-hd h2 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #3f3f46; }
-  .card-bd { padding: 12px 14px; }
-  .span-6 { grid-column: span 12; }
-  .span-12 { grid-column: span 12; }
-  @media (min-width: 720px) { .span-6 { grid-column: span 6; } }
-
-  .btn { display: inline-flex; align-items: center; gap: 4px; background: #fff; color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; cursor: pointer; }
-  .btn:hover { background: #f4f4f5; }
-  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn.primary:hover { background: #1d4ed8; }
-  .btn.sm { padding: 2px 8px; font-size: 11px; }
-  .icon-btn { width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); cursor: pointer; font-size: 13px; }
-  .icon-btn:hover { background: #f4f4f5; color: var(--text); }
-
-  .weather-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
-  .weather-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; background: linear-gradient(180deg, #fafbff 0%, #fff 100%); }
-  .weather-card .city { font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-  .weather-card .city .remove { opacity: 0; transition: opacity .12s; }
-  .weather-card:hover .city .remove { opacity: 1; }
-  .weather-card .time { font-size: 11px; color: var(--muted); margin-top: 1px; }
-  .weather-card .temp { font-size: 28px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; margin-top: 8px; }
-  .weather-card .hilo { font-size: 12px; color: var(--muted); }
-  .weather-card .cond { font-size: 12px; color: #3f3f46; margin-top: 4px; }
-  .weather-card.pending .temp { color: var(--muted); font-size: 18px; }
-
-  .stocks-list { display: flex; flex-direction: column; gap: 0; }
-  .stock-row { display: grid; grid-template-columns: 1fr auto auto 22px; gap: 10px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--border); }
-  .stock-row:last-child { border-bottom: none; }
-  .stock-row .sym { font-weight: 600; font-size: 13px; }
-  .stock-row .name { color: var(--muted); font-size: 11px; }
-  .stock-row .price { font-weight: 600; font-size: 13px; text-align: right; }
-  .stock-row .chg { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; min-width: 80px; }
-  .chg.up { color: var(--green); } .chg.down { color: var(--red); } .chg.flat { color: var(--muted); }
-  .stock-row .remove { opacity: 0; } .stock-row:hover .remove { opacity: 1; }
-
-  .cal-list { display: flex; flex-direction: column; gap: 6px; }
-  .cal-item { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border); }
-  .cal-item:last-child { border-bottom: none; }
-  .cal-time { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .cal-title { font-weight: 500; font-size: 13px; }
-  .cal-loc { color: var(--muted); font-size: 11px; }
-  .all-day { font-style: italic; }
-
-  .email-list { display: flex; flex-direction: column; gap: 0; max-height: 360px; overflow-y: auto; }
-  .email-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 2px; border-bottom: 1px solid var(--border); align-items: baseline; }
-  .email-item:last-child { border-bottom: none; }
-  .email-subject { font-size: 13px; font-weight: 500; }
-  .email-sender { font-size: 11px; color: var(--muted); }
-  .email-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
-
-  .news-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-  .news-col h3 { margin: 0 0 6px 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #3f3f46; display: flex; justify-content: space-between; align-items: center; }
-  .news-item { padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 13px; line-height: 1.35; }
-  .news-item:last-child { border-bottom: none; }
-  .news-item a { color: inherit; text-decoration: none; } .news-item a:hover { text-decoration: underline; }
-
-  .note-body { width: 100%; min-height: 80px; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: inherit; font-size: 13px; resize: vertical; }
-
-  .empty { color: var(--muted); font-style: italic; padding: 8px 0; font-size: 12px; }
-  .err { color: var(--red); font-size: 12px; padding: 4px 0; }
-  .loading { color: var(--muted); font-size: 12px; padding: 4px 0; }
-  .pending-pill { display: inline-block; background: var(--amber-soft); color: var(--amber); border: 1px solid #fde68a; border-radius: 999px; padding: 1px 7px; font-size: 10px; }
-
-  .modal-mask { position: fixed; inset: 0; background: rgba(24,24,27,.4); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
-  .modal { background: #fff; border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,.15); width: 100%; max-width: 420px; padding: 18px; }
-  .modal h3 { margin: 0 0 10px 0; font-size: 15px; }
-  .modal label { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; margin-bottom: 3px; }
-  .modal input, .modal select, .modal textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 13px; }
-  .modal .actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
-  .widget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-  .widget-option { border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px; cursor: pointer; text-align: left; background: #fff; }
-  .widget-option:hover { background: var(--accent-soft); border-color: var(--accent); }
-  .widget-option .title { font-weight: 600; font-size: 13px; }
-  .widget-option .desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
-
-  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.2); z-index: 100; opacity: 0; transition: opacity .2s; }
-  .toast.show { opacity: 1; }
-  .footer-note { color: var(--muted); font-size: 11px; text-align: center; margin-top: 20px; line-height: 1.5; }
-  .user-chip { color: var(--muted); font-size: 12px; }
-  .user-chip a { color: var(--muted); text-decoration: underline; }
+:root {
+color-scheme: light;
+--card: #ffffff; --card-2: #fafafa; --border: #e6e6e8; --border-strong: #d4d4d8;
+--text: #18181b; --muted: #71717a; --accent: #2563eb; --accent-soft: #eff6ff;
+--green: #15803d; --red: #b91c1c; --amber: #b45309; --amber-soft: #fffbeb;
+--shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06);
+--radius: 12px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #f8fafc; color: var(--text);
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+font-size: 17px; line-height: 1.5; }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 18px 20px 48px; }
+.header { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.header h1 { margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -.01em; }
+.date-line { font-size: 18px; color: var(--text); font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); border: 1px solid #dbeafe; padding: 5px 12px; border-radius: 999px; font-size: 14px; font-weight: 500; }
+.pill.stale { background: var(--amber-soft); color: var(--amber); border-color: #fde68a; }
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
+.card-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--card-2); }
+.card-hd h2 { margin: 0; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #3f3f46; }
+.card-bd { padding: 14px 16px; }
+.span-6 { grid-column: span 12; }
+.span-12 { grid-column: span 12; }
+@media (min-width: 720px) { .span-6 { grid-column: span 6; } }
+.btn { display: inline-flex; align-items: center; gap: 4px; background: #fff; color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 11px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn:hover { background: #f4f4f5; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { background: #1d4ed8; }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.icon-btn { width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); cursor: pointer; font-size: 14px; }
+.icon-btn:hover { background: #f4f4f5; color: var(--text); }
+/* Hot-link row styling — anchors that wrap a whole entry should look like the surrounding row but be clickable */
+.row-link, .row-link:visited { color: inherit; text-decoration: none; }
+.row-link:hover { text-decoration: none; }
+.cal-item.row-link:hover, .email-item.row-link:hover { background: var(--accent-soft); }
+.stock-row .row-link:hover .sym { color: var(--accent); }
+.weather-card .city .row-link:hover { color: var(--accent); }
+.weather-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.weather-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; background: linear-gradient(180deg, #fafbff 0%, #fff 100%); }
+.weather-card .city { font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+.weather-card .city .remove { opacity: 0; transition: opacity .12s; }
+.weather-card:hover .city .remove { opacity: 1; }
+.weather-card .time { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.weather-card .temp { font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; margin-top: 8px; }
+.weather-card .hilo { font-size: 14px; color: var(--muted); }
+.weather-card .cond { font-size: 14px; color: #3f3f46; margin-top: 4px; }
+.weather-card.pending .temp { color: var(--muted); font-size: 22px; }
+.stocks-list { display: flex; flex-direction: column; gap: 0; }
+.stock-row { display: grid; grid-template-columns: 1fr auto auto 24px; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.stock-row:last-child { border-bottom: none; }
+.stock-row .sym { font-weight: 600; font-size: 15px; }
+.stock-row .name { color: var(--muted); font-size: 13px; }
+.stock-row .price { font-weight: 600; font-size: 15px; text-align: right; }
+.stock-row .chg { font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; min-width: 96px; }
+.chg.up { color: var(--green); } .chg.down { color: var(--red); } .chg.flat { color: var(--muted); }
+.stock-row .remove { opacity: 0; } .stock-row:hover .remove { opacity: 1; }
+.cal-list { display: flex; flex-direction: column; gap: 4px; }
+.cal-item { display: grid; grid-template-columns: 84px 1fr; gap: 12px; padding: 9px 6px; border-bottom: 1px dashed var(--border); border-radius: 4px; }
+.cal-item:last-child { border-bottom: none; }
+.cal-time { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.cal-title { font-weight: 500; font-size: 15px; }
+.cal-loc { color: var(--muted); font-size: 13px; }
+.all-day { font-style: italic; }
+.email-list { display: flex; flex-direction: column; gap: 0; max-height: 420px; overflow-y: auto; }
+.email-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--border); align-items: baseline; border-radius: 4px; }
+.email-item:last-child { border-bottom: none; }
+.email-subject { font-size: 15px; font-weight: 500; }
+.email-sender { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.email-time { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.news-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.news-col h3 { margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #3f3f46; display: flex; justify-content: space-between; align-items: center; }
+.news-item { padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 15px; line-height: 1.4; }
+.news-item:last-child { border-bottom: none; }
+.news-item a { color: inherit; text-decoration: none; } .news-item a:hover { text-decoration: underline; color: var(--accent); }
+.note-body { width: 100%; min-height: 96px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: inherit; font-size: 15px; resize: vertical; }
+.empty { color: var(--muted); font-style: italic; padding: 10px 0; font-size: 14px; }
+.err { color: var(--red); font-size: 14px; padding: 6px 0; }
+.loading { color: var(--muted); font-size: 14px; padding: 6px 0; }
+.pending-pill { display: inline-block; background: var(--amber-soft); color: var(--amber); border: 1px solid #fde68a; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+.modal-mask { position: fixed; inset: 0; background: rgba(24,24,27,.4); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.modal { background: #fff; border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,.15); width: 100%; max-width: 460px; padding: 20px; }
+.modal h3 { margin: 0 0 12px 0; font-size: 17px; }
+.modal label { display: block; font-size: 13px; color: var(--muted); margin-top: 10px; margin-bottom: 4px; }
+.modal input, .modal select, .modal textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 15px; }
+.modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.widget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.widget-option { border: 1px solid var(--border-strong); border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; background: #fff; }
+.widget-option:hover { background: var(--accent-soft); border-color: var(--accent); }
+.widget-option .title { font-weight: 600; font-size: 15px; }
+.widget-option .desc { color: var(--muted); font-size: 13px; margin-top: 3px; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.2); z-index: 100; opacity: 0; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+.footer-note { color: var(--muted); font-size: 13px; text-align: center; margin-top: 24px; line-height: 1.55; }
+.user-chip { color: var(--muted); font-size: 14px; }
+.user-chip a { color: var(--muted); text-decoration: underline; }
 </style>
 </head>
 <body>
-
 <div class="wrap">
-
-  <div class="header">
-    <div>
-      <h1>Daily Dashboard</h1>
-      <div class="date-line" id="dateLine"></div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span id="refreshPill" class="pill">—</span>
-      <button class="btn sm" id="refreshBtn" title="Refresh weather/markets/news now">↻ Refresh</button>
-      <span class="user-chip" id="userChip"></span>
-    </div>
-  </div>
-
-  <div class="grid">
-    <div class="card span-6">
-      <div class="card-hd"><h2>Weather</h2>
-        <div><button class="btn sm" id="resetCitiesBtn" title="Restore defaults">↺</button>
-        <button class="btn sm primary" id="addCityBtn">+ Add city</button></div>
-      </div>
-      <div class="card-bd"><div id="weatherGrid" class="weather-grid"></div></div>
-    </div>
-
-    <div class="card span-6">
-      <div class="card-hd"><h2>Today &middot; Google Calendar</h2>
-        <button class="btn sm" id="reloadCalBtn">↻</button>
-      </div>
-      <div class="card-bd"><div id="calList" class="cal-list"></div></div>
-    </div>
-
-    <div class="card span-6">
-      <div class="card-hd"><h2>Markets</h2>
-        <div><button class="btn sm" id="resetStocksBtn" title="Restore defaults">↺</button>
-        <button class="btn sm primary" id="addStockBtn">+ Add stock</button></div>
-      </div>
-      <div class="card-bd"><div id="stocksList" class="stocks-list"></div></div>
-    </div>
-
-    <div class="card span-6">
-      <div class="card-hd"><h2>Unread email &middot; last 24h</h2>
-        <button class="btn sm" id="reloadEmailBtn">↻</button>
-      </div>
-      <div class="card-bd"><div id="emailList" class="email-list"></div></div>
-    </div>
-
-    <div class="card span-12">
-      <div class="card-hd"><h2>News headlines</h2>
-        <div><button class="btn sm" id="resetNewsBtn" title="Restore defaults">↺</button>
-        <button class="btn sm primary" id="addNewsBtn">+ Add source</button></div>
-      </div>
-      <div class="card-bd"><div id="newsCols" class="news-cols"></div></div>
-    </div>
-
-    <div class="card span-12" id="customWidgetsCard">
-      <div class="card-hd"><h2>Custom widgets</h2>
-        <button class="btn sm primary" id="addWidgetBtn">+ Add widget</button>
-      </div>
-      <div class="card-bd"><div id="customWidgetsList" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;"></div></div>
-    </div>
-  </div>
-
-  <div class="footer-note">
-    Gmail and Calendar refresh live each time you open this page. Weather, markets, and news refresh on demand (use ↻ Refresh) or automatically when stale.<br/>
-    Changes to your cities/stocks/news sources are synced to your account — they show up on any device you sign in from.
-  </div>
+<div class="header">
+<div>
+<h1>Daily Dashboard</h1>
+<div class="date-line" id="dateLine"></div>
 </div>
-
+<div style="display:flex; align-items:center; gap:10px;">
+<span id="refreshPill" class="pill">—</span>
+<button class="btn sm" id="refreshBtn" title="Refresh weather/markets/news now">↻ Refresh</button>
+<span class="user-chip" id="userChip"></span>
+</div>
+</div>
+<div class="grid">
+<div class="card span-6">
+<div class="card-hd"><h2>Weather</h2>
+<div><button class="btn sm" id="resetCitiesBtn" title="Restore defaults">↺</button>
+<button class="btn sm primary" id="addCityBtn">+ Add city</button></div>
+</div>
+<div class="card-bd"><div id="weatherGrid" class="weather-grid"></div></div>
+</div>
+<div class="card span-6">
+<div class="card-hd"><h2>Today &middot; Google Calendar</h2>
+<button class="btn sm" id="reloadCalBtn">↻</button>
+</div>
+<div class="card-bd"><div id="calList" class="cal-list"></div></div>
+</div>
+<div class="card span-6">
+<div class="card-hd"><h2>Markets</h2>
+<div><button class="btn sm" id="resetStocksBtn" title="Restore defaults">↺</button>
+<button class="btn sm primary" id="addStockBtn">+ Add stock</button></div>
+</div>
+<div class="card-bd"><div id="stocksList" class="stocks-list"></div></div>
+</div>
+<div class="card span-6">
+<div class="card-hd"><h2>Unread email &middot; last 24h</h2>
+<button class="btn sm" id="reloadEmailBtn">↻</button>
+</div>
+<div class="card-bd"><div id="emailList" class="email-list"></div></div>
+</div>
+<div class="card span-12">
+<div class="card-hd"><h2>News headlines</h2>
+<div><button class="btn sm" id="resetNewsBtn" title="Restore defaults">↺</button>
+<button class="btn sm primary" id="addNewsBtn">+ Add source</button></div>
+</div>
+<div class="card-bd"><div id="newsCols" class="news-cols"></div></div>
+</div>
+<div class="card span-12" id="customWidgetsCard">
+<div class="card-hd"><h2>Custom widgets</h2>
+<button class="btn sm primary" id="addWidgetBtn">+ Add widget</button>
+</div>
+<div class="card-bd"><div id="customWidgetsList" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;"></div></div>
+</div>
+</div>
+<div class="footer-note">
+Click any email, calendar event, news headline, stock, or city name to open it in a new tab.<br/>
+Gmail and Calendar refresh live each time you open this page. Weather, markets, and news refresh on demand (use ↻ Refresh) or automatically when stale.
+</div>
+</div>
 <div id="modalRoot"></div>
 <div id="toast" class="toast"></div>
-
 <script src="/app.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+pages_build_output_dir = "public"
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "d91319b1210642a980c3be1ecb770559"

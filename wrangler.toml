@@ -1,5 +1,11 @@
- name = "daily-dashboard"
+name = "daily-dashboard"
 pages_build_output_dir = "public"
+
+[vars]
+GOOGLE_CLIENT_ID = "1008686543160-t4nvq2rdrcfdqo3v9jcgct1akgelhn67.apps.googleusercontent.com"
+ALLOWED_EMAILS = "jjb94941@gmail.com"
+APP_URL = "https://daily-dashboard-57o.pages.dev"
+
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "d91319b1210642a980c3be1ecb770559"

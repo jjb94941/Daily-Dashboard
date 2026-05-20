@@ -4,7 +4,7 @@
 import { errorJson, json } from '../../_utils/helpers.js';
 
 const CACHE_KEY = 'daily-data:v1';
-const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // 6h
+const STALE_AFTER_MS = 30 * 60 * 1000; // 30m
 
 const NEWS_FEEDS = {
   nyt: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',

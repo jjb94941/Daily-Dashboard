@@ -127,7 +127,8 @@ async function fetchQuotesAll(symbols) {
   await Promise.all((symbols || []).map(async s => {
     try {
       const yahooSym = mapSymbol(s.symbol || s.id);
-      const u = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=5d`;
+      // range=1d → the chart's previous-close fields refer to the prior trading day.
+      const u = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`;
       const r = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0' } });
       if (!r.ok) throw new Error('yahoo ' + r.status);
       const d = await r.json();
@@ -135,7 +136,10 @@ async function fetchQuotesAll(symbols) {
       if (!result) throw new Error('no chart result');
       const meta = result.meta || {};
       const price = meta.regularMarketPrice;
-      const prev = meta.chartPreviousClose;
+      // Day-over-day change is measured against the previous trading day's close.
+      // meta.previousClose is that close directly; chartPreviousClose is a fallback
+      // (equal to previousClose here only because range=1d).
+      const prev = meta.previousClose != null ? meta.previousClose : meta.chartPreviousClose;
       const chg = price - prev;
       const pct = prev ? (chg / prev) * 100 : 0;
       out[s.id] = {

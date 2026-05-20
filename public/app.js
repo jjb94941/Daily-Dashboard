@@ -65,7 +65,7 @@ return `<div class="weather-card pending">
 return `<div class="weather-card">
 <div class="city"><a href="${esc(weatherHref)}" target="_blank" rel="noopener" class="row-link">${esc(c.name)}</a> <button class="icon-btn remove" data-rm-city="${esc(c.id)}" title="Remove">✕</button></div>
 <div class="time">${localTime}</div>
-<div class="temp">${w.icon || ''} ${w.tempF}°<span style="font-size:15px; color:var(--muted); font-weight:400;"> F</span></div>
+<div class="temp">${w.icon || ''} ${w.tempF}°<span style="font-size:11px; color:var(--muted); font-weight:400;"> F</span></div>
 <div class="hilo">H ${w.hiF}° &middot; L ${w.loF}°</div>
 <div class="cond">${esc(w.cond || '')}</div>
 </div>`;

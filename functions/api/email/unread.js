@@ -1,4 +1,4 @@
-// GET /api/email/unread → unread email subjects from the last 24h.
+// GET /api/email/unread → unread Primary-category email subjects from the last 24h.
 
 import { ensureAccessToken, gmailSearchThreads, gmailGetThread } from '../../_utils/google.js';
 import { errorJson, json } from '../../_utils/helpers.js';
@@ -7,7 +7,8 @@ export async function onRequestGet({ data, env }) {
   if (!data.session) return errorJson(401, 'not signed in');
   try {
     const accessToken = await ensureAccessToken(env, data.session);
-    const list = await gmailSearchThreads(accessToken, 'is:unread newer_than:1d -in:draft', 30);
+    // category:primary filters out Promotions / Social / Updates / Forums tabs.
+    const list = await gmailSearchThreads(accessToken, 'is:unread newer_than:1d -in:draft category:primary', 30);
     const threads = list.threads || [];
     // Fetch metadata for each in parallel (cap at 30 → safe).
     const detailed = await Promise.all(threads.map(async t => {
